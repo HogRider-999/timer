@@ -1,0 +1,422 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>YouTube 播放計時器</title>
+  <style>
+    :root{
+      --bg:#0b0f14;
+      --card:#111827;
+      --border:#1f2a3a;
+      --text:#e8eef7;
+      --muted:#9fb0c8;
+      --orange:#f97316;       /* 主題橘 */
+      --orange2:#fb923c;
+      --btn:#0f1522;
+    }
+
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      min-height:100vh;
+      display:grid;
+      place-items:center;
+      background: radial-gradient(900px 600px at 50% -10%, rgba(249,115,22,.25), transparent 60%),
+                  linear-gradient(180deg, #070a10, var(--bg));
+      color:var(--text);
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, "Noto Sans TC", Arial;
+      padding: 20px;
+    }
+
+    .card{
+      width:min(720px, 100%);
+      background: linear-gradient(180deg, rgba(17,24,39,.92), rgba(17,24,39,.72));
+      border: 1px solid rgba(249,115,22,.25);
+      border-radius: 18px;
+      padding: 18px;
+      box-shadow: 0 18px 60px rgba(0,0,0,.5);
+    }
+
+    h1{
+      margin:0 0 10px;
+      font-size: 20px;
+      letter-spacing: .2px;
+    }
+
+    .muted{
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.6;
+      margin-top: 6px;
+    }
+
+    .grid3{
+      display:grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 10px;
+      margin-top: 12px;
+    }
+
+    label{
+      display:block;
+      font-size: 12px;
+      color: rgba(232,238,247,.85);
+      margin-bottom: 6px;
+    }
+
+    input{
+      width:100%;
+      padding: 12px 12px;
+      border-radius: 12px;
+      border: 1px solid rgba(249,115,22,.25);
+      background: rgba(15,21,34,.9);
+      color: var(--text);
+      outline: none;
+    }
+
+    input:focus{
+      border-color: rgba(249,115,22,.65);
+      box-shadow: 0 0 0 4px rgba(249,115,22,.12);
+    }
+
+    .row{
+      display:grid;
+      grid-template-columns: 1fr;
+      gap: 10px;
+      margin-top: 14px;
+    }
+
+    .btnRow{
+      display:grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 10px;
+      margin-top: 12px;
+    }
+
+    button{
+      width:100%;
+      padding: 12px 12px;
+      border-radius: 12px;
+      border: 1px solid rgba(249,115,22,.35);
+      background: rgba(15,21,34,.9);
+      color: var(--text);
+      cursor: pointer;
+      font-weight: 700;
+    }
+
+    button.primary{
+      background: linear-gradient(180deg, rgba(249,115,22,.95), rgba(249,115,22,.75));
+      border-color: rgba(249,115,22,.85);
+      color: #111827;
+    }
+
+    button.danger{
+      border-color: rgba(255,100,100,.45);
+    }
+
+    button:disabled{
+      opacity:.55;
+      cursor:not-allowed;
+    }
+
+    .status{
+      margin-top: 14px;
+      padding: 12px;
+      border-radius: 14px;
+      border: 1px dashed rgba(249,115,22,.35);
+      background: rgba(15,21,34,.65);
+    }
+
+    .pill{
+      display:inline-block;
+      padding: 5px 10px;
+      border-radius: 999px;
+      border: 1px solid rgba(249,115,22,.35);
+      background: rgba(249,115,22,.10);
+      color: rgba(255,220,200,.95);
+      font-size: 12px;
+      margin-right: 8px;
+    }
+
+    .bigTime{
+      margin-top: 10px;
+      font-size: 34px;
+      font-weight: 900;
+      letter-spacing: .5px;
+      color: #fff;
+    }
+
+    progress{
+      width: 100%;
+      height: 14px;
+      margin-top: 10px;
+      border-radius: 999px;
+      overflow:hidden;
+    }
+    progress::-webkit-progress-bar{
+      background: rgba(255,255,255,.08);
+    }
+    progress::-webkit-progress-value{
+      background: linear-gradient(90deg, var(--orange), var(--orange2));
+    }
+
+    #ytWrap{
+      display:none;
+      margin-top: 12px;
+      border-radius: 14px;
+      overflow:hidden;
+      border: 1px solid rgba(249,115,22,.25);
+    }
+    #ytPlayer{
+      width:100%;
+      aspect-ratio: 16/9;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="card">
+    <h1>計時器</h1>
+    <div class="muted">
+      先輸入倒數時間（hr/min/sec），再貼 YouTube 連結。<br/>
+      若到點播放被擋，先按一次「解鎖播放」再開始。
+    </div>
+
+    <!-- Time inputs -->
+    <div class="grid3">
+      <div>
+        <label>hr</label>
+        <input id="hr" type="number" min="0" inputmode="numeric" placeholder="0" />
+      </div>
+      <div>
+        <label>min</label>
+        <input id="min" type="number" min="0" inputmode="numeric" placeholder="0" />
+      </div>
+      <div>
+        <label>sec</label>
+        <input id="sec" type="number" min="0" inputmode="numeric" placeholder="0" />
+      </div>
+    </div>
+
+    <!-- YouTube link -->
+    <div class="row">
+      <div>
+        <label>YouTube 連結或影片 ID</label>
+        <input id="yt" type="text" placeholder="https://www.youtube.com/watch?v=... 或 youtu.be/... 或 影片ID" />
+        <div class="muted">支援貼連結或 11 碼影片 ID；到點會在內嵌播放器播放整支影片。</div>
+      </div>
+    </div>
+
+    <div class="btnRow">
+      <button id="unlockBtn">解鎖播放</button>
+      <button id="startBtn" class="primary">開始</button>
+      <button id="stopBtn" class="danger">停止</button>
+    </div>
+
+    <div class="status">
+      <span class="pill" id="state">未啟動</span>
+      <span class="pill" id="target">目標：—</span>
+      <div class="bigTime" id="display">00:00</div>
+      <progress id="prog" value="0" max="1"></progress>
+      <div class="muted" id="msg">輸入時間後按開始。</div>
+
+      <div id="ytWrap">
+        <div id="ytPlayer"></div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://www.youtube.com/iframe_api"></script>
+  <script>
+    // ---------- DOM ----------
+    const $ = (id) => document.getElementById(id);
+    const els = {
+      hr: $("hr"), min: $("min"), sec: $("sec"),
+      yt: $("yt"),
+      unlockBtn: $("unlockBtn"),
+      startBtn: $("startBtn"),
+      stopBtn: $("stopBtn"),
+      state: $("state"),
+      target: $("target"),
+      display: $("display"),
+      prog: $("prog"),
+      msg: $("msg"),
+      ytWrap: $("ytWrap"),
+    };
+
+    // ---------- Utilities ----------
+    const pad = (n) => String(n).padStart(2, "0");
+    function fmt(sec) {
+      sec = Math.max(0, Math.floor(sec));
+      const h = Math.floor(sec / 3600);
+      const m = Math.floor((sec % 3600) / 60);
+      const s = sec % 60;
+      if (h > 0) return `${h}:${pad(m)}:${pad(s)}`;
+      return `${pad(m)}:${pad(s)}`;
+    }
+
+    function parseYouTubeId(input) {
+      if (!input) return null;
+      input = input.trim();
+      if (/^[a-zA-Z0-9_-]{11}$/.test(input)) return input;
+
+      try {
+        const u = new URL(input);
+        if (u.hostname.includes("youtube.com")) return u.searchParams.get("v");
+        if (u.hostname.includes("youtu.be")) return u.pathname.replace("/", "").slice(0, 11);
+      } catch {}
+      return null;
+    }
+
+    function getTotalSeconds() {
+      const h = Number(els.hr.value || 0);
+      const m = Number(els.min.value || 0);
+      const s = Number(els.sec.value || 0);
+      if (!Number.isFinite(h) || !Number.isFinite(m) || !Number.isFinite(s)) return 0;
+      return Math.max(0, h*3600 + m*60 + s);
+    }
+
+    function setStatus(state, msg) {
+      els.state.textContent = state;
+      els.msg.textContent = msg;
+    }
+
+    // ---------- YouTube Player ----------
+    let ytPlayer = null;
+    let ytReady = false;
+
+    window.onYouTubeIframeAPIReady = function() {
+      ytPlayer = new YT.Player("ytPlayer", {
+        height: "360",
+        width: "640",
+        videoId: "",
+        playerVars: { playsinline: 1 },
+        events: {
+          onReady: () => { ytReady = true; },
+        }
+      });
+    };
+
+    // ---------- Autoplay unlock ----------
+    let unlocked = false;
+
+    async function unlockPlayback() {
+      // YouTube 需要使用者手勢；這裡用「建立播放器 + 嘗試播放/暫停」來提高成功率
+      // 仍會依瀏覽器政策而定
+      try {
+        if (!ytPlayer || !ytReady) {
+          setStatus("等待中", "YouTube 播放器尚未就緒，請稍候再按一次解鎖。");
+          return;
+        }
+        // Load a harmless video id only if none yet (use a short public id placeholder)
+        // We avoid forcing a specific video; instead just attempt play/pause on current state
+        ytPlayer.playVideo();
+        ytPlayer.pauseVideo();
+        unlocked = true;
+        setStatus("已解鎖", "播放已解鎖。現在可開始倒數。");
+      } catch {
+        setStatus("解鎖失敗", "瀏覽器仍可能阻擋自動播放。請再按一次解鎖或調整站點自動播放權限。");
+      }
+    }
+
+    // ---------- Timer ----------
+    let timer = null;
+    let total = 0;
+    let endAt = null;
+    let running = false;
+
+    function stopTimer() {
+      running = false;
+      if (timer) { clearInterval(timer); timer = null; }
+      els.prog.value = 0;
+      els.target.textContent = "目標：—";
+      setStatus("已停止", "計時已停止。");
+      // stop yt if playing
+      try {
+        if (ytPlayer && ytReady) ytPlayer.stopVideo();
+      } catch {}
+    }
+
+    function startTimer() {
+      const secs = getTotalSeconds();
+      if (secs <= 0) {
+        setStatus("參數不足", "請輸入倒數時間（至少 1 秒）。");
+        return;
+      }
+
+      const vid = parseYouTubeId(els.yt.value);
+      if (!vid) {
+        setStatus("參數不足", "請貼上有效的 YouTube 連結或影片 ID。");
+        return;
+      }
+
+      // Start countdown
+      total = secs;
+      endAt = Date.now() + secs * 1000;
+      running = true;
+
+      const targetTime = new Date(endAt);
+      els.target.textContent = `目標：${targetTime.getHours()}:${pad(targetTime.getMinutes())}:${pad(targetTime.getSeconds())}`;
+      setStatus("計時中", "倒數中…");
+
+      if (timer) clearInterval(timer);
+      timer = setInterval(() => {
+        if (!running) return;
+
+        const left = (endAt - Date.now()) / 1000;
+        els.display.textContent = fmt(left);
+
+        const elapsed = (total - left);
+        const p = Math.min(1, Math.max(0, elapsed / total));
+        els.prog.max = 1;
+        els.prog.value = p;
+
+        if (left <= 0) {
+          // fire
+          running = false;
+          clearInterval(timer);
+          timer = null;
+          els.display.textContent = "00:00";
+          els.prog.value = 1;
+          setStatus("到點", "到點播放 YouTube…");
+
+          playYouTube(vid);
+        }
+      }, 200);
+    }
+
+    function playYouTube(videoId) {
+      els.ytWrap.style.display = "";
+      if (!ytPlayer || !ytReady) {
+        setStatus("播放器未就緒", "YouTube 播放器尚未就緒，已改為開新分頁播放。");
+        window.open(`https://www.youtube.com/watch?v=${encodeURIComponent(videoId)}`, "_blank", "noopener");
+        return;
+      }
+
+      try {
+        // 如果未解鎖，仍嘗試播放；失敗時提示使用者按解鎖
+        ytPlayer.loadVideoById(videoId);
+        ytPlayer.playVideo();
+        if (!unlocked) {
+          setStatus("播放中", "若沒有聲音/未播放，請先按「解鎖播放」再重新開始。");
+        } else {
+          setStatus("播放中", "YouTube 正在播放。");
+        }
+      } catch {
+        setStatus("播放失敗", "可能被瀏覽器阻擋，已改為開新分頁播放。");
+        window.open(`https://www.youtube.com/watch?v=${encodeURIComponent(videoId)}`, "_blank", "noopener");
+      }
+    }
+
+    // ---------- Events ----------
+    els.unlockBtn.addEventListener("click", unlockPlayback);
+    els.startBtn.addEventListener("click", startTimer);
+    els.stopBtn.addEventListener("click", stopTimer);
+
+    // nice defaults
+    els.display.textContent = "00:00";
+    setStatus("未啟動", "輸入時間後按開始。");
+  </script>
+</body>
+</html>
